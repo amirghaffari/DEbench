@@ -4,9 +4,8 @@ DEbench (Distributed Erlang Benchmark)
 Introduction
 ------------
 
-DEbench is a benchmark suite for distributed Erlang. It measures the throughput and latency of distributed Erlang commands and saves them in appropriate `CSV` files. DEbench's implementation is based on Basho Bensh (an open source benchmarking tool for Riak database).
-
-You can find more details about Basho Bench here: (https://github.com/basho/basho_bench).
+DEbench is a benchmark suite for distributed Erlang. It measures the throughput and latency of distributed Erlang commands and saves them in appropriate `CSV` files. 
+DEbench's implementation is based on [Basho Bensh](https://github.com/basho/basho_bench) (an open source benchmarking tool for Riak database).
 
 How to build and run the benchmark suite 
 ----------------------------------------
@@ -48,7 +47,7 @@ Note) The config file for clusters is `template_bench.config`. After finishing t
 
 		$ make results
 
-		If everything goes well, you should have a graph (a png file) in `test/current` directory=. 
+If everything goes well, you should have a graph (a png file) in `test/current` directory=. 
 
 * For clusters, after aggregating the CSV files for all nodes, the graph is created in `all/aggregated` directory.
 
