@@ -14,6 +14,8 @@ $ make clean
 
 2. Build DEbench
 
+$ git clone git://github.com/amirghaffari/DEbench
+$ cd DEbench
 $ make
 
 3. Run DEbench: There are two ways to run the benchmark. Easier one is locally. To run it on a cluster, the cluster information is needed.
