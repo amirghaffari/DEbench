@@ -3,6 +3,7 @@
 %% For more information about the licence, please refer to: 
 %% http://docs.basho.com/riak/latest/cookbooks/Benchmarking/
 %% https://github.com/basho/basho_bench
+%% Modified by Amir Ghaffari
 %% RELEASE project (http://www.release-project.eu/)
 
 -module(de_bench_worker).
@@ -199,9 +200,9 @@ worker_active_loop(State) ->
 		Selected_node = lists:nth(NodeIndex,Erlang_nodes)
 	end,
 	case node() =:= Selected_node of
-	true ->
+	true when node() /= 'nonode@nohost'-> % this lets to run the benchmark locally
 		OpTag2=local_node; % local
-	false -> 
+	_ -> 
 		OpTag2=OpTag
 	end,
 
