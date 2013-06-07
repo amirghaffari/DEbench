@@ -3,7 +3,6 @@
 %% For more information about the licence, please refer to: 
 %% http://docs.basho.com/riak/latest/cookbooks/Benchmarking/
 %% https://github.com/basho/basho_bench
-%% Modified by Amir Ghaffari
 %% RELEASE project (http://www.release-project.eu/)
 
 -module(de_bench).

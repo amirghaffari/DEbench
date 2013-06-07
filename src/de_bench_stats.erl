@@ -3,7 +3,6 @@
 %% For more information about the licence, please refer to: 
 %% http://docs.basho.com/riak/latest/cookbooks/Benchmarking/
 %% https://github.com/basho/basho_bench
-%% Modified by Amir Ghaffari
 %% RELEASE project (http://www.release-project.eu/)
 
 -module(de_bench_stats).
@@ -39,8 +38,7 @@ start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 run() ->
-	Sleep_time=de_bench_config:get(sleep_time_after_ping, 0),
-    gen_server:call(?MODULE, run, timer:seconds(Sleep_time+5)).
+    gen_server:call(?MODULE, run, timer:seconds(5)).
 
 op_complete(Op, ok, ElapsedUs) ->
     op_complete(Op, {ok, 1}, ElapsedUs);

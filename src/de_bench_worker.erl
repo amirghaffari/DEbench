@@ -3,7 +3,6 @@
 %% For more information about the licence, please refer to: 
 %% http://docs.basho.com/riak/latest/cookbooks/Benchmarking/
 %% https://github.com/basho/basho_bench
-%% Modified by Amir Ghaffari
 %% RELEASE project (http://www.release-project.eu/)
 
 -module(de_bench_worker).
@@ -47,13 +46,8 @@ init([SupChild, Id]) ->
 	Ops     = ops_tuple(),
 	State = #state { id = Id, sup_id = SupChild, parent_pid=self(),
 	ops = Ops, ops_len = size(Ops), next_op='', data='', erlang_nodes=Erlang_nodes, continue=true},
-	Pangs=de_helper:ping_nodes(Erlang_nodes,[]),
-	case Pangs of
-	[] ->
-		?CONSOLE("ping: All nodes (~p) are available \n", [length(Erlang_nodes)]);
-	_->
-		?ERROR("ping: ~p nodes from total ~p nodes are not accessible: ~p~n", [length(Pangs),length(Erlang_nodes), Pangs])
-	end,
+
+
 
 	%% NOTE: If the worker process dies, this obviously introduces some entroy
 	%% into the equation since you'd be restarting the RNG all over.
@@ -200,9 +194,9 @@ worker_active_loop(State) ->
 		Selected_node = lists:nth(NodeIndex,Erlang_nodes)
 	end,
 	case node() =:= Selected_node of
-	true when node() /= 'nonode@nohost'-> % this lets to run the benchmark locally
+	true ->
 		OpTag2=local_node; % local
-	_ -> 
+	false -> 
 		OpTag2=OpTag
 	end,
 

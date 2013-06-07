@@ -3,7 +3,6 @@
 %% For more information about the licence, please refer to: 
 %% http://docs.basho.com/riak/latest/cookbooks/Benchmarking/
 %% https://github.com/basho/basho_bench
-%% Modified by Amir Ghaffari
 %% RELEASE project (http://www.release-project.eu/)
 
 -module(de_bench_sup).
@@ -19,12 +18,14 @@
 %% Helper macro for declaring children of supervisor
 -define(CHILD(I, Type), {I, {I, start_link, []}, permanent, 5000, Type, [I]}).
 
+-include("de_bench.hrl").
+
 %% ===================================================================
 %% API functions
 %% ===================================================================
 
 start_link() ->
-    supervisor:start_link({local, ?MODULE}, ?MODULE, []).
+    supervisor:start_link({local, ?MODULE}, ?MODULE, []). %% calls init synchronously
 
 stop_child(Id) ->
     ok = supervisor:terminate_child(?MODULE, Id),
@@ -39,7 +40,15 @@ workers() ->
 
 init([]) ->
 	Sleep_time=de_bench_config:get(sleep_time_before_ping, 0),
-	timer:sleep(timer:seconds(Sleep_time)),
+	timer:sleep(timer:seconds(Sleep_time)), %% makes sure all nodes run Erlang VM
+	Erlang_nodes=de_bench_config:get(erlange_nodes, []),
+	Pangs=de_helper:ping_nodes(Erlang_nodes,[]),
+	case Pangs of
+	[] ->
+		?CONSOLE("ping: All nodes (~p) are available \n", [length(Erlang_nodes)]);
+	_->
+		?ERROR("ping: ~p nodes from total ~p nodes are not accessible: ~p~n", [length(Pangs),length(Erlang_nodes), Pangs])
+	end,
     Workers = worker_specs(de_bench_config:get(concurrent), []),
     {ok, {{one_for_one, 5, 1},
 		[?CHILD(de_bench_stats, worker)] ++
