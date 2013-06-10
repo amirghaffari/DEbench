@@ -194,7 +194,7 @@ worker_active_loop(State) ->
 		Selected_node = lists:nth(NodeIndex,Erlang_nodes)
 	end,
 	case node() =:= Selected_node of
-	true ->
+	true when Selected_node /= 'nonode@nohost' ->
 		OpTag2=local_node; % local
 	false -> 
 		OpTag2=OpTag

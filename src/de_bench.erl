@@ -50,9 +50,11 @@ initial(Configs) ->
 	de_helper:file_exist(Configs),
 	%% Load the config files
 	de_bench_config:load(Configs),
+	io:format("Load config at ~p ~n",[erlang:time()]),
 	ok = application:load(de_bench),
+	io:format("Load Application at ~p ~n",[erlang:time()]),
 	register(de_bench, self()),
-    
+    io:format("Benchmark starts at ~p ~n",[erlang:time()]),
     %% Setup working directory for this test. All logs, stats, and config
     %% info will be placed here
     %% Define these dirs before Lager starts
