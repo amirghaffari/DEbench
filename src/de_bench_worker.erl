@@ -196,7 +196,7 @@ worker_active_loop(State) ->
 	case node() =:= Selected_node of
 	true when Selected_node /= 'nonode@nohost' ->
 		OpTag2=local_node; % local
-	false -> 
+	_ -> 
 		OpTag2=OpTag
 	end,
 
