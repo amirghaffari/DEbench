@@ -10,10 +10,6 @@ DEbench's implementation is based on [Basho Bensh](https://github.com/basho/bash
 How to build and run the benchmark suite 
 ----------------------------------------
 
-### Clean up after any previous builds (if necessary).
-
-	$ make clean
-
 
 ### Build DEbench
 
@@ -21,6 +17,9 @@ How to build and run the benchmark suite
 	$ cd DEbench
 	$ make
 
+### Clean up after any previous builds (if necessary).
+
+	$ make clean
 
 ### Run DEbench
 
