@@ -13,14 +13,14 @@ global_register_percentage=$5
 local_register_percentage=$6
 
 
-Base_directory="/u1/pg/ag275/Desktop/de_benchmark2";
+Base_directory="`pwd`"
 Erlang_path="/u1/pg/ag275/erlang/bin";
 R_path="/u1/pg/ag275/R/R-2.15.1/bin";
 SNIC_TMP="/scratch"
 Killing_nodes=$Total_Nodes
 
 
-Source_direcory="${Base_directory}/source";
+Source_direcory="${Base_directory}";
 Original_Config_File="template_bench.config";
 Base_Result_directory=$7;
 
