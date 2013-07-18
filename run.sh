@@ -7,8 +7,8 @@
 # To run on a cluster, you need to specify the cluster information (like number of nodes and nodes name) in files: run.sh and experiment.sh
 # How to run:  ./run.sh
 
-SDErlang=true
-group_size=2;
+SDErlang=true # If your Erlang/OTP doesn't support SD Erlang , set this to false
+group_size=2; # Size of S_groups for SD Erlang benchmarking 
 
 for experiment in  1 #  2 3
 do     
