@@ -30,8 +30,8 @@ Killing_nodes=$Total_Nodes
 
 VM_Name="node";
 Source_direcory="${Base_directory}";
-Original_Config_File="origin_bench.config";
-Original_SDErlang_Config_File="original_sderlang.config";
+Original_Config_File="template_bench.config";
+Original_SDErlang_Config_File="template_sderlang.config";
 SDErlang_Config_File="sderlang.config";
 
 
