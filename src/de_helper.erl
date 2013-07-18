@@ -4,7 +4,7 @@
 
 -module(de_helper).
 
--export([ping_nodes/2, getRandomm/1, id/0, get_timestamp/0, file_exist/1, data_block/0, sleep_microsecond/1 ]).
+-export([ping_nodes/2, getRandomm/1, id/0, get_timestamp/0, file_exist/1, data_block/0, sleep_microsecond/1, get_S_Groups/0 ]).
 
 -include("de_bench.hrl").
 
@@ -64,4 +64,36 @@ sleep_microsecond(Start, SleepTime) ->
 			sleep_microsecond(Start, SleepTime)
 	end.
 
+get_S_Groups() ->
+	case module_exists(s_group) of
+		true -> %% Erlang OTP supports SDErlang
+			try s_group:own_s_groups() of
+				List_of_S_groups -> s_Groups_Names(List_of_S_groups,[]) 
+			catch
+				_-> List_of_S_groups=[],  
+				s_Groups_Names(List_of_S_groups,[])
+			end;
+		false -> %% Erlang OTP supports SDErlang
+			[]
+	end.
 
+
+s_Groups_Names([],List) ->
+	List;
+s_Groups_Names([{SGroupName, _Nodes}|Tail],List) ->
+	s_Groups_Names(Tail, [SGroupName|List]).
+
+module_exists(Module) ->
+    case is_atom(Module) of
+        true ->
+            try Module:module_info() of
+                _InfoList ->
+                    true
+            catch
+                _:_ ->
+                    false
+            end;
+ 
+        false ->
+            false
+    end.

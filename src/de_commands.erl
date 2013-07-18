@@ -4,11 +4,11 @@
 
 -module(de_commands).
 
--export([run/3, getback_remote_data/2]).
+-export([run/4, getback_remote_data/2]).
 
 -include("de_bench.hrl").
 
-run(TargetNode, Ope, Data) ->
+run(TargetNode, Ope, Data, S_Groups) ->
 	case Ope of
 
 		%% spawn a process on remote TargetNode node
@@ -31,28 +31,59 @@ run(TargetNode, Ope, Data) ->
 		%% register a name globally 
 		global_register ->
 			ProcessName=de_helper:get_timestamp(),
-			Start = now(),
-			global:register_name(ProcessName, self()),
-			ElapsedUs = timer:now_diff(now(), Start),
+			case S_Groups of
+			true ->
+				GroupNames=de_helper:get_S_Groups(),
+				Start = now(),
+				lists:foreach(fun(SGroupName) ->	s_group:register_name(SGroupName, ProcessName, self()) end, GroupNames),
+				ElapsedUs = timer:now_diff(now(), Start)/erlang:length(GroupNames);
+			false ->
+				Start = now(),
+				global:register_name(ProcessName, self()),
+				ElapsedUs = timer:now_diff(now(), Start)
+			end,
 			{ok, ElapsedUs, global_register, ProcessName};
 
 		%% unregister a name globally
 		global_unregister ->
-			Start = now(),
-			global:unregister_name(Data),
-			ElapsedUs = timer:now_diff(now(), Start),
+			case S_Groups of
+			true ->
+				GroupNames=de_helper:get_S_Groups(),
+				Start = now(),
+				lists:foreach(fun(SGroupName) ->s_group:unregister_name(SGroupName, Data) end, GroupNames),
+				ElapsedUs = timer:now_diff(now(), Start)/erlang:length(GroupNames);
+			false ->
+				Start = now(),
+				global:unregister_name(Data),
+				ElapsedUs = timer:now_diff(now(), Start)
+			end,
 			{ok, ElapsedUs, global_unregister};
 
 		%% queries a name globally
 		global_whereis ->
-			Start = now(),
-			Pid=global:whereis_name(Data),
-			ElapsedUs = timer:now_diff(now(), Start),
-			case is_pid(Pid) of
+			case S_Groups of
 			true ->
-				{ok, ElapsedUs, global_whereis, Data};
+				GroupNames=de_helper:get_S_Groups(),
+				Start = now(),
+				ResultPIDs=lists:foldl(fun(SGroupName, PIDs) -> Pid=s_group:whereis_name(SGroupName, Data), [Pid|PIDs] end, [], GroupNames),
+				ElapsedUs = timer:now_diff(now(), Start)/erlang:length(GroupNames),
+				FailedPIDs=lists:foldl(fun(Pid, Fails) -> case is_pid(Pid) of false -> [Pid|Fails]; true -> Fails end end, [], ResultPIDs),
+				case FailedPIDs of
+				[] ->
+					{ok, ElapsedUs, global_whereis, Data};
+				_ ->
+					{error, ElapsedUs, whereis_error, Data}
+				end;
 			false ->
-				{error, ElapsedUs, whereis_error, Data}
+				Start = now(),
+				Pid=global:whereis_name(Data),
+				ElapsedUs = timer:now_diff(now(), Start),
+				case is_pid(Pid) of
+				true ->
+					{ok, ElapsedUs, global_whereis, Data};
+				false ->
+					{error, ElapsedUs, whereis_error, Data}
+				end
 			end;
 
 		%% makes a RPC call on TargetNode node

@@ -13,9 +13,9 @@
 -export([start_link/2, run/1]).
 
 %% gen_server callbacks
--export([init/1,terminate/2, handle_info/2, handle_call/3, handle_cast/2, code_change/3,idle_process/0,initialize_global_size/2]).
+-export([init/1,terminate/2, handle_info/2, handle_call/3, handle_cast/2, code_change/3]).
 
--record(state, { id, sup_id, worker_pid, parent_pid, ops, ops_len, next_op, data, erlang_nodes, continue}).
+-record(state, { id, sup_id, worker_pid, parent_pid, ops, ops_len, next_op, data, erlang_nodes, continue, s_groups}).
 
 -include("de_bench.hrl").
 
@@ -44,10 +44,13 @@ init([SupChild, Id]) ->
             ok
     end,
 	Ops     = ops_tuple(),
-	State = #state { id = Id, sup_id = SupChild, parent_pid=self(),
-	ops = Ops, ops_len = size(Ops), next_op='', data='', erlang_nodes=Erlang_nodes, continue=true},
-
-
+	case de_helper:get_S_Groups() of
+	[] ->
+		S_Groups=false;
+	_GroupNames ->
+		S_Groups=true
+	end,
+	State = #state { id = Id, sup_id = SupChild, parent_pid=self(), ops = Ops, ops_len = size(Ops), next_op='', data='', erlang_nodes=Erlang_nodes, continue=true, s_groups=S_Groups},
 
 	%% NOTE: If the worker process dies, this obviously introduces some entroy
 	%% into the equation since you'd be restarting the RNG all over.
@@ -107,45 +110,8 @@ worker_init(State) ->
     %% Trap exits from linked parent process; use this to ensure the driver
     %% gets a chance to cleanup
     process_flag(trap_exit, true),
-    Initial_global_size=de_bench_config:get(initial_global_size, 0),
-    ?CONSOLE("Initial global size = ~p ~n", [Initial_global_size]),
-    initialize_global_size(Initial_global_size,State),
     worker_idle_loop(State).
 
-%% Initially register a number of processes globally 
-initialize_global_size(Initial_global_size, State) ->
-case Initial_global_size of
-	0 ->
-		ok;
-	_->
-		ProcessName=de_helper:get_timestamp(),
-		Pid=global:whereis_name(ProcessName),
-		case is_pid(Pid) of
-		true ->
-			timer:sleep(1),
-			initialize_global_size(Initial_global_size, State);
-		false ->
-			Erlang_nodes  = State#state.erlang_nodes,
-			NodeIndex = de_helper:getRandomm(length(Erlang_nodes)),
-			case is_list(lists:nth(NodeIndex,Erlang_nodes)) of
-			true ->
-				Selected_node = list_to_atom(lists:nth(NodeIndex,Erlang_nodes));
-			false ->
-				Selected_node = lists:nth(NodeIndex,Erlang_nodes)
-			end,
-			ProcessID = spawn_link(Selected_node,?MODULE, idle_process, []),
-			%ProcessID=spawn(fun() -> idle_process() end),
-			PName=pid_to_list(ProcessID),
-			global:register_name(list_to_atom(lists:append(PName, ProcessName)),ProcessID),
-			initialize_global_size(Initial_global_size-1, State)
-		end
-end.
-
-idle_process() ->
-    receive
-        never_happen ->
-			ok
-    end.
 
 worker_idle_loop(State) ->
     receive
@@ -212,9 +178,7 @@ worker_active_loop(State) ->
 	local_whereis when State#state.next_op /= local_whereis ->
 		State2=State;
 	_ ->
-		%Start = now(),
-		Result = (catch de_commands:run(Selected_node, OpTag, State#state.data) ),
-		%ElapsedUs = timer:now_diff(now(), Start),
+		Result = (catch de_commands:run(Selected_node, OpTag, State#state.data, State#state.s_groups) ),
 		case Result of 
 			{ok, ElapsedUs, _} ->
 				case de_bench_stats:op_complete(Next, ok, ElapsedUs) of

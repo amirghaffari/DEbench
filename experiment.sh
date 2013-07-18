@@ -5,24 +5,34 @@
 
 Start_Node=1;
 Duration=5; # benchmark's duration in minute
-Total_Nodes=$1;
+Total_Nodes=$1; # (number of Erlang VMs per each node) * (number of nodes)
 
 spawn_percentage=$3
 remote_call_percentage=$4
 global_register_percentage=$5
 local_register_percentage=$6
+Base_Result_directory=$7;
+group_size=$8
+SDErlang=$9
 
+Base_directory=`pwd`;
 
-Base_directory="`pwd`"
-Erlang_path="/u1/pg/ag275/erlang/bin";
+if $SDErlang ; then
+	Erlang_path="/u1/pg/ag275/Desktop/sderlang/sderlang/bin";
+else
+	Erlang_path="/u1/pg/ag275/erlang/bin";
+fi
+
 R_path="/u1/pg/ag275/R/R-2.15.1/bin";
 SNIC_TMP="/scratch"
 Killing_nodes=$Total_Nodes
 
 
+VM_Name="node";
 Source_direcory="${Base_directory}";
-Original_Config_File="template_bench.config";
-Base_Result_directory=$7;
+Original_Config_File="origin_bench.config";
+Original_SDErlang_Config_File="original_sderlang.config";
+SDErlang_Config_File="sderlang.config";
 
 
 if [ ! -d "$Base_directory" ]; then
@@ -54,11 +64,8 @@ for index in `seq $Start_Node $To_Node`; do
 			Hostnames[$Node_Counter]="bwlf${index}.macs.hw.ac.uk";
 			tempip=`ssh -q ${Hostnames[$Node_Counter]} "hostname -i;"`;
 			IPaddresses[$Node_Counter]=$tempip;
-			echo "more than 10 ($index) ${Hostnames[$Node_Counter]}  ${IPaddresses[$Node_Counter]} " 
 		fi
 done
-
-
 
 for Number_of_VMs in $2
 do
@@ -81,7 +88,7 @@ do
 	fi
 
 	for index in `seq 1 $Number_of_VMs`; do 
-		VMs[$index]="erlang_node${index}@"
+		VMs[$index]="${VM_Name}${index}@"
 	done
 
 	Output_file_name="${Result_directory}/shell_output_DE_benchmark_${Number_of_Nodes}_${Number_of_VMs}";
@@ -111,14 +118,58 @@ do
 
 	let Duration_sec=$Duration*60;
 	let Report_interval_seconds=$Duration_sec/10;
-	let Sleep_time_here=($Total_number_of_Erlang_Nodes*5)/100;
-	let Sleep_time_here=$Sleep_time_here+3;
+	let Sleep_time_here=$Total_number_of_Erlang_Nodes/2;
 
 	let Sleep_for_copying_file=$Number_of_VMs*2;
 	
 	echo "Name of VM nodes are: $String_format_addresses">>$Output_file_name;
 	echo "======= Duration is $Duration_sec seconds  and Sleep_time_here is $Sleep_time_here seconds =========">>$Output_file_name;
 
+	if $SDErlang ; then
+		let NumberOfGroup=$Total_number_of_Erlang_Nodes/$group_size+1;
+		Number_of_VMs=$2;
+		index_total_nodes=0;
+		SGroups="";
+		for group_num in `seq 1 $NumberOfGroup`; do
+			if [ $group_num -lt $NumberOfGroup ]
+			then
+				Groupsize=$group_size
+			else
+				let temp1=$group_num-1;
+				let temp1=$group_size*$temp1
+				let Groupsize=$Total_number_of_Erlang_Nodes-$temp1
+			fi
+			String_temp="";
+			for counter in `seq 1 $Groupsize`; do
+				let index_total_nodes=$index_total_nodes+1;
+				let temp1=${index_total_nodes}/$Number_of_VMs;
+				let temp2=$temp1*$Number_of_VMs;
+				let VMIndex=${index_total_nodes}-$temp2;
+				if [ $VMIndex -eq 0 ] 
+				then
+					VMIndex=$Number_of_VMs
+					let PhysicalNodeIndex=$temp1;
+				else
+					let PhysicalNodeIndex=$temp1+1;
+				fi
+				NodeName=${VMs[$VMIndex]}${Hostnames[$PhysicalNodeIndex]}
+				
+				if [ $counter -eq 1 ]
+				then
+					String_temp=${String_temp}${Qoute_mark}${NodeName}${Qoute_mark}
+				else
+					String_temp=${String_temp}${Comma_mark}${Qoute_mark}${NodeName}${Qoute_mark}
+				fi
+
+			done
+			if [ $group_num -eq 1 ]
+			then
+				SGroups="{group${group_num}, normal, [$String_temp]}"
+			else
+				SGroups="$SGroups, {group${group_num}, normal, [$String_temp]}"
+			fi
+		done
+	fi
 
 	for index in `seq 1 $Killing_nodes`; do 
 	ssh -q ${IPaddresses[$index]} "
@@ -130,12 +181,13 @@ do
 	echo 'befor kill=====';
 	top -b -n 1 | grep beam.smp;
 	pkill beam.smp;
+	kill $(pgrep beam.smp);
 	echo 'after kill=====';
 	top -b -n 1 | grep beam.smp;
 	echo 'time:';
 	date +'%T';
+	pkill -u ag275
 	echo '===========================================';
-	
 	";
 	done
 
@@ -145,14 +197,14 @@ do
 	for index in `seq 1 $Number_of_Nodes`; do 
 	(ssh -q ${IPaddresses[$index]} "
 	echo '===========================================';
-	PATH=$PATH:$Erlang_path;
+	PATH=$Erlang_path:$PATH;
 	export PATH;
 	cd $SNIC_TMP;
 	rm -rf de_bench/
 	mkdir de_bench;
 	cd de_bench;
 	pkill beam.smp;
-	echo 'debug-- Running Erlang VM on hostname and path at time:';
+	echo 'Running Erlang VM on hostname and path at time:';
 	pwd;
 	hostname -i;
 	hostname;
@@ -162,12 +214,13 @@ do
 		cd $SNIC_TMP;
 		cd de_bench;
 		echo '===============';
-		VMname=\"erlang_node\${counter}@\";
-		VMname_Dir=\"erlang_node\${counter}\";
+		VMname=\"${VM_Name}\${counter}@\";
+		VMname_Dir=\"${VM_Name}\${counter}\";
 		mkdir \${VMname_Dir};
 		cd \${VMname_Dir};
 		#cp -rf ${Source_direcory}/* .;
-		cp -rf ${Source_direcory}/deps ${Source_direcory}/ebin ${Source_direcory}/priv ${Source_direcory}/template_bench.config .;
+		cp -rf ${Source_direcory}/deps ${Source_direcory}/ebin ${Source_direcory}/priv ${Source_direcory}/${Original_Config_File} ${Source_direcory}/${Original_SDErlang_Config_File} .;
+		sed \"s/----------/$SGroups/g\" $Original_SDErlang_Config_File>$SDErlang_Config_File;
 		sed \"s/Here_put_VMs_names/$String_format_addresses/g\" $Original_Config_File>$Config_file;
 		sed -i \"s/sleep_time_here/$Sleep_time_here/g\" $Config_file;
 		sed -i \"s/minutes/$Duration/g\" $Config_file;
@@ -187,7 +240,7 @@ do
 
 		#zip -r Source_Host_${index}_VM_\${counter}.zip *;
 		#mv  Source_Host_${index}_VM_\${counter}.zip $Result_directory;
-		echo \"debug-- Benchmark runs on Erlang node (\${VMname}${Hostnames[$index]}) on node ${Hostnames[$index]} at time:\";
+		echo \"Benchmark runs on Erlang node (\${VMname}${Hostnames[$index]}) on node ${Hostnames[$index]} at time:\";
 		date +'%T';
 	done
 
@@ -212,19 +265,25 @@ do
 		cd $SNIC_TMP;
 		cd de_bench;
 		echo '===============';
-		VMname_Dir=\"erlang_node\${counter}\";
-		VMname=\"erlang_node\${counter}@\";
+		VMname_Dir=\"${VM_Name}\${counter}\";
+		VMname=\"${VM_Name}\${counter}@\";
 		cd \${VMname_Dir};
-		echo 'debug-- before run erlang:'
+		echo 'before run erlang:'
 		date +'%T';
 		echo 'current path:'>${Output_file_name}_nodes_${index}_VMs_${Number_of_VMs}_\${VMname_Dir};
 		pwd>>${Output_file_name}_nodes_${index}_VMs_${Number_of_VMs}_\${VMname_Dir};
 		echo 'On host:'>>${Output_file_name}_nodes_${index}_VMs_${Number_of_VMs}_\${VMname_Dir};
 		hostname>>${Output_file_name}_nodes_${index}_VMs_${Number_of_VMs}_\${VMname_Dir};
-		(erl -noshell -name \${VMname}${Hostnames[$index]} -run de_bench main $Config_file -s init stop -pa ebin -pa deps/*/ebin>>${Output_file_name}_nodes_${index}_VMs_${Number_of_VMs}_\${VMname_Dir})&
-		echo 'debug-- after run erlang:';
+
+		if $SDErlang ; then
+			(erl -noshell -name \${VMname}${Hostnames[$index]} -config $SDErlang_Config_File -run de_bench main $Config_file -s init stop -pa ebin -pa deps/*/ebin>>${Output_file_name}_nodes_${index}_VMs_${Number_of_VMs}_\${VMname_Dir})&
+		else
+			(erl -noshell -name \${VMname}${Hostnames[$index]} -run de_bench main $Config_file -s init stop -pa ebin -pa deps/*/ebin>>${Output_file_name}_nodes_${index}_VMs_${Number_of_VMs}_\${VMname_Dir})&
+		fi
+
+		echo 'after run erlang:';
 		date +'%T';
-		echo \"debug-- Benchmark runs on Erlang node (\${VMname}${Hostnames[$index]}) on node ${Hostnames[$index]} at time:\";
+		echo \"Benchmark runs on Erlang node (\${VMname}${Hostnames[$index]}) on node ${Hostnames[$index]} at time:\";
 		date +'%T';
 	done
 	top -b -n 1 | grep beam.smp;
@@ -254,9 +313,10 @@ do
 		cd $SNIC_TMP;
 		cd de_bench;
 		echo \"=======  index = $index and counter = \${counter}  ========\";
-		VMname_Dir=\"erlang_node\${counter}\";
+		VMname_Dir=\"${VM_Name}\${counter}\";
 		cd \${VMname_Dir};
 		#priv/summary.r -i tests/current;
+		cp $SDErlang_Config_File tests/current;
 		cd tests/current;
 		echo 'list of files before zip ============================================================='>>${Output_file_name}_nodes_${index}_VMs_${Number_of_VMs}_\${VMname_Dir};
 		ls  *.csv *.config *.png>>${Output_file_name}_nodes_${index}_VMs_${Number_of_VMs}_\${VMname_Dir};
@@ -289,4 +349,3 @@ do
 	date +'%T'>>$Output_file_name;
 
 done
-

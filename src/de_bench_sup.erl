@@ -39,8 +39,8 @@ workers() ->
 %% ===================================================================
 
 init([]) ->
-	Sleep_time=de_bench_config:get(sleep_time_before_ping, 0),
-	timer:sleep(timer:seconds(Sleep_time)), %% makes sure all nodes run Erlang VM
+	Sleep_time_bef=de_bench_config:get(sleep_time_before_ping, 0),
+	timer:sleep(timer:seconds(Sleep_time_bef)), %% makes sure all nodes run Erlang VM
 	Erlang_nodes=de_bench_config:get(erlange_nodes, []),
 	Pangs=de_helper:ping_nodes(Erlang_nodes,[]),
 	case Pangs of
@@ -49,6 +49,24 @@ init([]) ->
 	_->
 		?ERROR("ping: ~p nodes from total ~p nodes are not accessible: ~p~n", [length(Pangs),length(Erlang_nodes), Pangs])
 	end,
+	Sleep_time_aft=de_bench_config:get(sleep_time_after_ping, 0),
+	timer:sleep(timer:seconds(Sleep_time_aft)), %% makes sure cluster of Erlang nodes becomes stable
+	%% initiate 
+    Initial_global_size=de_bench_config:get(initial_global_size, 0),
+    Initial_active_process=de_bench_config:get(initial_active_process, 0),
+    ?CONSOLE("Initial global size = ~p ~n", [Initial_global_size]),
+    ?CONSOLE("Initial active process = ~p ~n", [Initial_active_process]),
+    initialize_global_size(Initial_global_size),
+    initialize_active_process(Initial_active_process),
+    %% find S_group
+	case de_helper:get_S_Groups() of
+	[] ->
+		?CONSOLE("This node is not belong to any S_groups \n",[]);
+	GroupNames ->
+		?CONSOLE("This node belongs to these S_groups: ~p \n", [GroupNames])
+	end,
+
+	%% run workers 
     Workers = worker_specs(de_bench_config:get(concurrent), []),
     {ok, {{one_for_one, 5, 1},
 		[?CHILD(de_bench_stats, worker)] ++
@@ -66,3 +84,49 @@ worker_specs(Count, Acc) ->
     Spec = {Id, {de_bench_worker, start_link, [Id, Count]},
             permanent, 5000, worker, [de_bench_worker]},
 	worker_specs(Count-1, [Spec | Acc]).
+
+%% Initially register a number of processes globally to see how the initial size of global name table affect the system performance
+initialize_global_size(Initial_global_size) ->
+case Initial_global_size of
+	0 ->
+		ok;
+	_->
+		ProcessName=de_helper:get_timestamp(),
+		Pid=global:whereis_name(ProcessName),
+		case is_pid(Pid) of
+		true ->
+			timer:sleep(1),
+			initialize_global_size(Initial_global_size);
+		false ->
+			ProcessID=spawn(fun() -> idle_process() end), %% Create a process and register it in global name space
+			PName=pid_to_list(ProcessID),
+			global:register_name(list_to_atom(lists:append(PName, ProcessName)),ProcessID),
+			initialize_global_size(Initial_global_size-1)
+		end
+end.
+
+%% Idle processes are created to register their PID globally
+idle_process() ->
+	timer:seconds(5), %% sleep 5 second and become active again
+	idle_process().
+
+%% Initially run a number of active processes to see how number of active process affect the system performance
+initialize_active_process(Initial_active_process) ->
+	case Initial_active_process of
+		0 ->
+			ok;
+		_->
+			spawn(fun() -> active_process() end),
+			initialize_active_process(Initial_active_process-1)
+	end.
+
+
+active_process() ->	
+	de_helper:sleep_microsecond(10), %% keep busy for 10 microseconds
+	active_process().
+
+
+
+
+
+
