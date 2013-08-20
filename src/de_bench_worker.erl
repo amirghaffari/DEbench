@@ -181,7 +181,7 @@ worker_active_loop(State) ->
 		Result = (catch de_commands:run(Selected_node, OpTag, State#state.data, State#state.s_groups) ),
 		case Result of 
 			{ok, ElapsedUs, _} ->
-				case de_bench_stats:op_complete(Next, ok, ElapsedUs) of
+				case register_results(Next, ok, ElapsedUs, 0) of
 					ok ->
 						State2=State#state {next_op='', data='', continue=true};
 					finish ->
@@ -189,7 +189,7 @@ worker_active_loop(State) ->
 				end;
 
 			{ok, ElapsedUs, global_register, Res} ->
-				case de_bench_stats:op_complete(Next, ok, ElapsedUs) of
+				case register_results(Next, ok, ElapsedUs, 0) of
 					ok ->
 						State2=State#state {next_op=global_whereis, data=Res, continue=true};
 					finish ->
@@ -197,15 +197,15 @@ worker_active_loop(State) ->
 				end;
 
 			{ok, ElapsedUs, global_whereis, Res} ->
-				case de_bench_stats:op_complete(Next, ok, ElapsedUs) of
+				case register_results(Next, ok, ElapsedUs, 0) of
 					ok ->
 						State2=State#state {next_op=global_unregister, data=Res, continue=true};
 					finish ->
 						State2=State#state {next_op=global_unregister, data=Res, continue=false}
 				end;
 
-			{error, ElapsedUs, _} ->
-				case de_bench_stats:op_complete(Next, Result, ElapsedUs) of
+			{error, ElapsedUs, Reason} ->
+				case register_results(Next, {error, Reason}, ElapsedUs, 0) of
 					ok ->
 						State2=State;
 					finish ->
@@ -213,7 +213,7 @@ worker_active_loop(State) ->
 				end;
 
 			{error, ElapsedUs, whereis_error, Data} ->
-				case de_bench_stats:op_complete(Next, {error, whereis_error}, ElapsedUs) of
+				case register_results(Next, {error, whereis_error}, ElapsedUs, 0) of
 					ok -> 
 						State2=State#state {next_op=global_unregister, data=Data, continue=true};
 					finish ->
@@ -221,7 +221,7 @@ worker_active_loop(State) ->
 				end;
 
 			{error, ElapsedUs, local_whereis_error, Data} ->
-				case de_bench_stats:op_complete(Next, {error, local_whereis_error}, ElapsedUs) of
+				case register_results(Next, {error, local_whereis_error}, ElapsedUs, 0) of
 					ok -> 
 						State2=State#state {next_op=local_unregister, data=Data, continue=true};
 					finish ->
@@ -229,7 +229,7 @@ worker_active_loop(State) ->
 				end;
 
 			{ok, ElapsedUs, local_register, Res} ->
-				case de_bench_stats:op_complete(Next, ok, ElapsedUs) of
+				case register_results(Next, ok, ElapsedUs, 0) of
 					ok ->
 						State2=State#state {next_op=local_whereis, data=Res, continue=true};
 					finish ->
@@ -237,7 +237,7 @@ worker_active_loop(State) ->
 				end;
 
 			{ok, ElapsedUs, local_whereis, Res} ->
-				case de_bench_stats:op_complete(Next, ok, ElapsedUs) of
+				case register_results(Next, ok, ElapsedUs, 0) of
 					ok ->
 						State2=State#state {next_op=local_unregister, data=Res, continue=true};
 					finish ->
@@ -246,7 +246,7 @@ worker_active_loop(State) ->
 
 			{'EXIT', Reason} ->
 				%% Operation failed, generate a crash error and terminate.
-				case de_bench_stats:op_complete(Next, {error, Reason}, 0) of
+				case register_results(Next, {error, Reason}, 0, 0) of
 					ok ->
 						State2=State;
 					finish ->
@@ -260,6 +260,19 @@ worker_active_loop(State) ->
 		false ->
 				worker_active_loop(State2)
 	end.
+
+register_results(Operation, Result, ElapsedTime, Level) ->
+  try de_bench_stats:op_complete(Operation, Result, ElapsedTime)
+  catch
+    exit:{timeout,Why} -> ?ERROR("stats process timeout in level ~p : ~p ~n", [Level, Why]),
+	timer:sleep(1),
+	if 
+		Level > 5 -> 
+			ok;
+		Level =< 5 ->
+			register_results(Operation, Result, ElapsedTime, Level+1)
+	end
+  end.
 
 %%
 %% Stop a worker process via the supervisor and terminate the app

@@ -69,10 +69,7 @@ public class csv_tool
         System.out.print( resultFolderPath+"\n");
         System.out.print( baseFolderPath+"\n");
         
-        //String[] filesType = {"errors.csv", "summary.csv", "spawning_latencies.csv", "global-whereis_latencies.csv", "global-unregister_latencies.csv", "global-register_latencies.csv", "remote-call_latencies.csv", "local-register_latencies.csv", "local-unregister_latencies.csv", "local-whereis_latencies.csv"};
-        String[] filesType = {"errors.csv", "summary.csv", "spawning_latencies.csv", "remote-call_latencies.csv", "local-register_latencies.csv", "local-unregister_latencies.csv", "local-whereis_latencies.csv"};
-        //String[] filesType = {"summary.csv"};
-        //String[] filesType = {"errors.csv", "insert_latencies.csv"};
+        String[] filesType = {"errors.csv", "summary.csv", "spawning_latencies.csv", "remote-call_latencies.csv", "global-whereis_latencies.csv", "global-unregister_latencies.csv", "global-register_latencies.csv", "local-register_latencies.csv", "local-unregister_latencies.csv", "local-whereis_latencies.csv"};
 
         List<String> listOfZipFiles = searchOneLevelFiles(baseFolderPath,".zip");
         delete_file("logfile.txt");
@@ -355,6 +352,7 @@ public class csv_tool
         File file = new File(zipFile);
 
         ZipFile zip = new ZipFile(file);
+        //String newPath = zipFile.substring(0, zipFile.length() - 4);
         String newPath = get_directory(zipFile);
         new File(newPath).mkdir();
         Enumeration zipFileEntries = zip.entries();
@@ -366,6 +364,7 @@ public class csv_tool
             ZipEntry entry = (ZipEntry) zipFileEntries.nextElement();
             String currentEntry = entry.getName();
             File destFile = new File(newPath, currentEntry);
+            //destFile = new File(newPath, destFile.getName());
             File destinationParent = destFile.getParentFile();
 
             // create the parent directory structure if needed

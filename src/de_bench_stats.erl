@@ -38,9 +38,7 @@ start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 run() ->
-	%Sleep_time=de_bench_config:get(sleep_time_after_ping, 0),
-    %gen_server:call(?MODULE, run, timer:seconds(Sleep_time+5)).
-    gen_server:call(?MODULE, run, timer:seconds(5)).
+    gen_server:call(?MODULE, run).
 
 op_complete(Op, ok, ElapsedUs) ->
     op_complete(Op, {ok, 1}, ElapsedUs);
@@ -48,10 +46,17 @@ op_complete(Op, {ok, Units}, ElapsedUs) ->
     %% Update the histogram and units counter for the op in question
     folsom_metrics:notify({latencies, Op}, ElapsedUs),
     folsom_metrics:notify({units, Op}, {inc, Units}),
-    gen_server:call(?MODULE, {increase_counter});
+    case de_bench_config:get(max_num_operarions, 0) of
+		0-> ok;
+		_-> gen_server:call(?MODULE, {increase_counter})
+	end;
 op_complete(Op, Result, ElapsedUs) ->  
     gen_server:call(?MODULE, {op, Op, Result, ElapsedUs}),
-    gen_server:call(?MODULE, {increase_counter}).
+    case de_bench_config:get(max_num_operarions, 0) of
+		0-> ok;
+		_-> gen_server:call(?MODULE, {increase_counter})
+	end.
+
 
 %% ====================================================================
 %% gen_server callbacks
@@ -60,6 +65,7 @@ op_complete(Op, Result, ElapsedUs) ->
 init([]) ->
     %% Trap exits so we have a chance to flush data
     process_flag(trap_exit, true),
+    process_flag(priority, high),
 
     %% Spin up folsom
     folsom:start(),
@@ -76,12 +82,20 @@ init([]) ->
     ets:new(de_bench_total_operations, [protected, named_table]),
 
     %% Get the list of operations we'll be using for this test
+
     F1 =
-        fun({OpTag, _Count}) -> {OpTag, OpTag};
-           ({Label, OpTag, _Count}) -> {Label, OpTag}
+        fun({OpTag, Count}) -> 
+			case Count of
+				0-> [];
+				_-> {OpTag, OpTag}
+			end;
+		({Label, OpTag, Count}) -> 
+			case Count of
+				0-> [];
+				_-> {Label, OpTag}
+			end
         end,
-    Ops = [F1(X) || X <- de_bench_config:get(operations, [])],
-    
+	Ops = lists:flatten([F1(X) || X <- de_bench_config:get(operations, [])]),
 
     %% Setup a histogram and counter for each operation -- we only track latencies on
     %% successful operations
@@ -301,11 +315,17 @@ report_latency(Elapsed, Window, Op) ->
                                   proplists:get_value(max, Stats),
                                   Errors]);
         false ->
-            ?WARN("No data for op: ~p\n", [Op]),
-            Line = io_lib:format("~w, ~w, 0, 0, 0, 0, 0, 0, 0, 0, ~w\n",
-                                 [Elapsed,
-                                  Window,
-                                  Errors])
+			Line = io_lib:format("~w, ~w, 0, 0, 0, 0, 0, 0, 0, 0, ~w\n",
+						 [Elapsed,
+						  Window,
+						  Errors]),
+			case de_helper:opt_count(Op) of
+				0 ->
+					ok;
+                _ ->
+					?WARN("No data for op: ~p\n", [Op])
+			end
+            
     end,
     ok = file:write(erlang:get({csv_file, Op}), Line),
     {Units, Errors}.

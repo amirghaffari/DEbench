@@ -49,8 +49,7 @@ init([]) ->
 	_->
 		?ERROR("ping: ~p nodes from total ~p nodes are not accessible: ~p~n", [length(Pangs),length(Erlang_nodes), Pangs])
 	end,
-	Sleep_time_aft=de_bench_config:get(sleep_time_after_ping, 0),
-	timer:sleep(timer:seconds(Sleep_time_aft)), %% makes sure cluster of Erlang nodes becomes stable
+
 	%% initiate 
     Initial_global_size=de_bench_config:get(initial_global_size, 0),
     Initial_active_process=de_bench_config:get(initial_active_process, 0),
@@ -61,14 +60,14 @@ init([]) ->
     %% find S_group
 	case de_helper:get_S_Groups() of
 	[] ->
-		?CONSOLE("This node is not belong to any S_groups \n",[]);
+		?CONSOLE("This node does not belong to any S_groups \n",[]);
 	GroupNames ->
 		?CONSOLE("This node belongs to these S_groups: ~p \n", [GroupNames])
 	end,
 
 	%% run workers 
     Workers = worker_specs(de_bench_config:get(concurrent), []),
-    {ok, {{one_for_one, 5, 1},
+    {ok, {{one_for_one, 100, 1}, %% terminates if 100 fails occur 1 second
 		[?CHILD(de_bench_stats, worker)] ++
         Workers
     }}.

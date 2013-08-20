@@ -4,7 +4,7 @@
 
 -module(de_helper).
 
--export([ping_nodes/2, getRandomm/1, id/0, get_timestamp/0, file_exist/1, data_block/0, sleep_microsecond/1, get_S_Groups/0 ]).
+-export([ping_nodes/2, getRandomm/1, id/0, get_timestamp/0, file_exist/1, data_block/0, sleep_microsecond/1, get_S_Groups/0, opt_count/1 ]).
 
 -include("de_bench.hrl").
 
@@ -97,3 +97,20 @@ module_exists(Module) ->
         false ->
             false
     end.
+
+opt_count(Opt) ->
+opt_count(Opt, de_bench_config:get(operations, [])).
+%%0.
+
+opt_count(Opt, [{_,Opt, Count}|_Operations]) ->
+Count;
+
+opt_count(Opt, [{Opt, Count}|_Operations]) ->
+Count;
+
+opt_count(Opt, [_|Operations]) ->
+opt_count(Opt, Operations);
+
+opt_count(_Opt, []) ->
+0.
+

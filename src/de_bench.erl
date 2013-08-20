@@ -119,6 +119,9 @@ wait_for_stop(Mref, DurationMins) ->
 
     after Duration ->
             de_bench_app:stop(),
-            ?CONSOLE("Test completed after ~p mins.\n", [DurationMins])
+            ?CONSOLE("Test completed after ~p mins.\n", [DurationMins]),
+			Sleep_after_bench_finished=de_bench_config:get(delay_after_bench_finished, 10),
+			timer:sleep(timer:seconds(Sleep_after_bench_finished)), %% to response to other nodes which have been started with a bit delay
+			?CONSOLE("Erlang VM terminates ~p seconds after benchmark.\n", [Sleep_after_bench_finished])
     end.
 

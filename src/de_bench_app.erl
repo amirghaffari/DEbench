@@ -17,6 +17,7 @@
 %% Application callbacks
 -export([start/2, stop/1]).
 
+-include("de_bench.hrl").
 
 start() ->
     %% Start up our application -- mark it as permanent so that the node
@@ -36,8 +37,9 @@ is_running() ->
 start(_StartType, _StartArgs) ->
     {ok, Pid} = de_bench_sup:start_link(),
     application:set_env(de_bench_app, is_running, true),
-   % Sleep_time=de_bench_config:get(sleep_time_after_ping, 0),
-   % timer:sleep(timer:seconds(Sleep_time)),
+    Sleep_time=de_bench_config:get(sleep_time_after_ping, 0),
+    ?CONSOLE("Sleep ~p seconds to make sure the cluster of Erlang nodes becomes stable after pinging.\n", [Sleep_time]),
+    timer:sleep(timer:seconds(Sleep_time)), %% makes sure cluster of Erlang nodes becomes stable before running worker processes
     ok = de_bench_stats:run(),
     ok = de_bench_worker:run(de_bench_sup:workers()),
 	{ok, Pid}.

@@ -15,7 +15,7 @@ run(TargetNode, Ope, Data, S_Groups) ->
 		spawning ->
 			Packet=de_helper:data_block(),
 			Start = now(),
-			spawn_link(TargetNode,?MODULE, getback_remote_data, [self(), Packet]),
+			spawn(TargetNode,?MODULE, getback_remote_data, [self(), Packet]),
 			receive
 				{spawn_result, true, Packet} ->
 					ElapsedUs = timer:now_diff(now(), Start),
