@@ -59,4 +59,4 @@ If everything goes well, you should have a graph (a png file) in `test/current` 
 
 * For clusters, after aggregating the CSV files for all nodes, the graph is created in `all/aggregated` directory.
 
-Note) to create graphs, the R statistics language is needed. Find more about [`R`](http://www.r-project.org/)
+**Note**) to create graphs, the R statistics language is needed. Find more about [`R`](http://www.r-project.org/)
