@@ -10,7 +10,7 @@ DEbench is a benchmark tool for distributed Erlang. It measures the throughput a
 * Globally or locally name registration: A PID (process identifier) is registered, looked up, and unregistered globally or locally. Functions `register`, `whereis`, `unregister` are called respectively.
 * Synchronous call to a server process: A function from an OTP `gen_server` or `gen_fsm` is called. Functions `gen_server:call` and `gen_fsm:sync_send_event` are used.
 
-Note) in cases that a function is called, i.e. `spawn`, `RPC`, `gen_server:call` and `gen_fsm:sync_send_event`, the argument’s size of the function and the time that function takes to complete is configurable. For example, we can specify in the configuration file that function’s argument size is 200 bytes and function takes 10 microseconds to complete on target node.
+**Note**) in cases that a function is called, i.e. `spawn`, `RPC`, `gen_server:call` and `gen_fsm:sync_send_event`, the argument’s size of the function and the time that function takes to complete is configurable. For example, we can specify in the configuration file that function’s argument size is 200 bytes and function takes 10 microseconds to complete on target node.
 
 DEbench's implementation is based on [Basho Bensh](https://github.com/basho/basho_bench) (an open source benchmarking tool for Riak database).
 
