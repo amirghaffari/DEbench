@@ -1,5 +1,5 @@
 DEbench (Distributed Erlang Benchmark)
-======================================
+-----------
 
 Introduction
 ------------
