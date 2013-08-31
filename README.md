@@ -12,7 +12,7 @@ DEbench is a benchmark tool for distributed Erlang. It measures the throughput a
 
 **Note**) in cases that a function is called, i.e. `spawn`, `RPC`, `gen_server:call` and `gen_fsm:sync_send_event`, the argument’s size of the function and the time that function takes to complete is configurable. For example, we can specify in the configuration file that function’s argument size is 200 bytes and function takes 10 microseconds to complete on target node.
 
-**More**) We have used DEbench in the [RELEASE project] (http://www.release-project.eu/) to measure the scalability of distributed Erlang. Youn can find more in the report (`report.pdf`).
+**More**) We have used DEbench in the [RELEASE project] (http://www.release-project.eu/) to measure the scalability of distributed Erlang. You can find more in the report (`report.pdf`).
 
 DEbench's implementation is based on [Basho Bensh](https://github.com/basho/basho_bench) (an open source benchmarking tool for Riak database).
 
