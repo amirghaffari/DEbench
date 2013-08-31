@@ -68,6 +68,8 @@ init([]) ->
 	%% run workers 
     Workers = worker_specs(de_bench_config:get(concurrent), []),
     {ok, {{one_for_one, 100, 1}, %% terminates if 100 fails occur 1 second
+		[?CHILD(de_bench_server, worker)] ++
+		[?CHILD(de_bench_fsm, worker)] ++
 		[?CHILD(de_bench_stats, worker)] ++
         Workers
     }}.

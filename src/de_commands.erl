@@ -11,6 +11,42 @@
 run(TargetNode, Ope, Data, S_Groups) ->
 	case Ope of
 
+		%% call a fsm process on remote TargetNode node
+		fsm_server_call ->
+			Packet=de_helper:data_block(),
+			Start = now(),
+			try Result=de_bench_fsm:service(TargetNode, Packet),
+				case Result of
+				{true, Packet} ->
+					ElapsedUs = timer:now_diff(now(), Start),
+					{ok, ElapsedUs, true};
+				_ ->
+					ElapsedUs = timer:now_diff(now(), Start),
+					{error, ElapsedUs, fsm_server_error}
+				end
+			catch
+				exit:{timeout,_} -> Elapsed = timer:now_diff(now(), Start),
+									{error, Elapsed, fsm_server_timeout}
+			end;
+
+		%% call a gen_server process on remote TargetNode node
+		gen_server_call ->
+			Packet=de_helper:data_block(),
+			Start = now(),
+			try Result=de_bench_server:service(TargetNode, Packet),
+				case Result of
+				{true, Packet} ->
+					ElapsedUs = timer:now_diff(now(), Start),
+					{ok, ElapsedUs, true};
+				_ ->
+					ElapsedUs = timer:now_diff(now(), Start),
+					{error, ElapsedUs, gen_server_error}
+				end
+			catch
+				exit:{timeout,_} -> Elapsed = timer:now_diff(now(), Start),
+									{error, Elapsed, gen_server_timeout}
+			end;
+
 		%% spawn a process on remote TargetNode node
 		spawning ->
 			Packet=de_helper:data_block(),
