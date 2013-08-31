@@ -51,11 +51,11 @@ Note) Benchmark's duration, commands and number of worker processes are defined 
 
 ### Create graphs
 
-* For local runs
+* To create graph for local runs
 
 		$ make results
 
-If everything goes well, you should have a graph (a png file) in `test/current` directory=. 
+If everything goes well, you should have a graph (a png file) in `test/current` directory.
 
 * For clusters, after aggregating the CSV files for all nodes, the graph is created in `all/aggregated` directory.
 
