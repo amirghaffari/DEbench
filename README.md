@@ -39,9 +39,6 @@ There are two ways to run the benchmark. Easier one is local run in which all co
 		$ ./de_bench bench.config
 
 The config file for local runs is `bench.config`. After finishing the benchmark, the results are saved in `test/current` directory.
-To create graph (note: [`R`](http://www.r-project.org/) is needed):
-
-		$ priv/summary.r -i tests/current
 
 * To run the benchmark on a cluster, you need to specify the cluster information (like number of nodes and nodes name) in files: `run.sh` and `experiment.sh`
 
