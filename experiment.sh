@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -l
 #SBATCH -A p2012172
 #SBATCH -p node -N 0 -n 0
 #SBATCH -t 00:00:00 
@@ -17,11 +17,13 @@ spawn_percentage=$3
 remote_call_percentage=$4
 global_register_percentage=$5
 local_register_percentage=$6
-Base_Result_directory=$7;
-BwlfCluster=$8
-group_size=$9
-SDErlang=${10}
-Duration=${11} # benchmark's duration
+gen_server_call_percentage=$7
+fsm_server_call_percentage=$8 
+Base_Result_directory=$9
+BwlfCluster=${10}
+group_size=${11}
+SDErlang=${12}
+Duration=${13} # benchmark's duration
 
 Base_directory=`pwd`;
 
@@ -29,11 +31,11 @@ Base_directory=`pwd`;
 
 if $BwlfCluster ; then
 	if $SDErlang ; then
-		Erlang_path="/u1/pg/ag275/Desktop/sderlang/sderlang/bin";
+		Erlang_path="/home/ag275/sderlang/bin";
 	else
-		Erlang_path="/u1/pg/ag275/erlang/bin";
+		Erlang_path="/home/ag275/erlang/bin";
 	fi
-	R_path="/u1/pg/ag275/R/R-2.15.1/bin";
+	R_path="/home/ag275/R/R-3.0.1/bin";
 	SNIC_TMP="/scratch"
 	Killing_nodes=$Total_Nodes
 else
@@ -80,6 +82,10 @@ if $BwlfCluster ; then
 				IPaddresses[$Node_Counter]=$tempip;
 				echo "more than 10 ($index) ${Hostnames[$Node_Counter]}  ${IPaddresses[$Node_Counter]} " 
 			fi
+			Result_netstat=`ssh ${Hostnames[$Node_Counter]} "netstat -s"`;
+			before_sent_packets[$Node_Counter]=$(echo "$Result_netstat" | grep 'segments send out'| awk  '{print $1}'| head -1)
+			before_received_packets[$Node_Counter]=$(echo "$Result_netstat" | grep 'segments received'| awk  '{print $1}'| head -1)
+			before_retransmission_packets[$Node_Counter]=$(echo "$Result_netstat" | grep 'retransmited'| awk  '{print $1}')
 	done
 else
 	for index in `seq 1 $Total_Nodes`; do 
@@ -96,6 +102,10 @@ else
 		done
 		IPaddresses[$index]=$tempip;
 		Hostnames[$index]=$temphostname;
+		Result_netstat=`srun -r $zero_index  -N 1 -n 1 bash -c "netstat -s"`;
+		before_sent_packets[$index]=$(echo "$Result_netstat" | grep 'segments send out'| awk  '{print $1}'| head -1)
+		before_received_packets[$index]=$(echo "$Result_netstat" | grep 'segments received'| awk  '{print $1}'| head -1)
+		before_retransmission_packets[$index]=$(echo "$Result_netstat" | grep 'retransmited'| awk  '{print $1}')
 	done
 fi
 
@@ -121,7 +131,7 @@ for index in `seq 1 $Number_of_VMs`; do
 	VMs[$index]="${VM_Name}${index}@"
 done
 
-Output_file_name="${Result_directory}/shell_output_DE_benchmark_${Number_of_Nodes}_${Number_of_VMs}";
+Output_file_name="${Result_directory}/shell_output_nodes_${Number_of_Nodes}_vms_${Number_of_VMs}";
 echo "Start at time :">$Output_file_name;
 date +'%T'>>$Output_file_name;
 
@@ -210,11 +220,12 @@ date +'%T';
 echo 'befor kill=====';
 top -b -n 1 | grep beam.smp;
 pkill beam.smp;
-pkill epmd;
+kill $(pgrep beam.smp);
 echo 'after kill=====';
 top -b -n 1 | grep beam.smp;
 echo 'time:';
 date +'%T';
+pkill -u ag275
 echo '===========================================';
 ";
 done
@@ -246,7 +257,6 @@ do
 	VMname_Dir=\"${VM_Name}\${counter}\";
 	mkdir \${VMname_Dir};
 	cd \${VMname_Dir};
-	#cp -rf ${Source_direcory}/* .;
 	cp -rf ${Source_direcory}/deps ${Source_direcory}/ebin ${Source_direcory}/priv ${Source_direcory}/${Original_Config_File} ${Source_direcory}/${Original_SDErlang_Config_File} .;
 	sed \"s/----------/$SGroups/g\" $Original_SDErlang_Config_File>$SDErlang_Config_File;
 	sed \"s/Here_put_VMs_names/$String_format_addresses/g\" $Original_Config_File>$Config_file;
@@ -268,6 +278,9 @@ do
 	sed -i \"s/local_register_percentage/$local_register_percentage/g\" $Config_file;
 	sed -i \"s/local_unregister_percentage/$local_register_percentage/g\" $Config_file;
 	sed -i \"s/local_whereis_percentage/$local_register_percentage/g\" $Config_file;
+	
+	sed -i \"s/gen_server_call_percentage/$gen_server_call_percentage/g\" $Config_file;
+	sed -i \"s/fsm_server_call_percentage/$fsm_server_call_percentage/g\" $Config_file;
 
 	#zip -r Source_Host_${index}_VM_\${counter}.zip *;
 	#mv  Source_Host_${index}_VM_\${counter}.zip $Result_directory;
@@ -301,15 +314,16 @@ do
 	cd \${VMname_Dir};
 	echo 'before run erlang:'
 	date +'%T';
-	echo 'current path:'>${Output_file_name}_nodes_${index}_VMs_${Number_of_VMs}_\${VMname_Dir};
-	pwd>>${Output_file_name}_nodes_${index}_VMs_${Number_of_VMs}_\${VMname_Dir};
-	echo 'On host:'>>${Output_file_name}_nodes_${index}_VMs_${Number_of_VMs}_\${VMname_Dir};
-	hostname>>${Output_file_name}_nodes_${index}_VMs_${Number_of_VMs}_\${VMname_Dir};
+	echo 'current path:'>${Result_directory}/node_${index}_VM_\${counter}
+	
+	pwd>>${Result_directory}/node_${index}_VM_\${counter}
+	echo 'On host:'>>${Result_directory}/node_${index}_VM_\${counter}
+	hostname>>${Result_directory}/node_${index}_VM_\${counter}
 
 	if $SDErlang ; then
-		(erl -noshell -name \${VMname}${Hostnames[$index]} -config $SDErlang_Config_File -run de_bench main $Config_file -s init stop -pa ebin -pa deps/*/ebin>>${Output_file_name}_nodes_${index}_VMs_${Number_of_VMs}_\${VMname_Dir})&
+		(erl -noshell -name \${VMname}${Hostnames[$index]} -config $SDErlang_Config_File -run de_bench main $Config_file -s init stop -pa ebin -pa deps/*/ebin>>${Result_directory}/node_${index}_VM_\${counter})&
 	else
-		(erl -noshell -name \${VMname}${Hostnames[$index]} -run de_bench main $Config_file -s init stop -pa ebin -pa deps/*/ebin>>${Output_file_name}_nodes_${index}_VMs_${Number_of_VMs}_\${VMname_Dir})&
+		(erl -noshell -name \${VMname}${Hostnames[$index]} -run de_bench main $Config_file -s init stop -pa ebin -pa deps/*/ebin>>${Result_directory}/node_${index}_VM_\${counter})&
 	fi
 
 	echo 'after run erlang:';
@@ -327,15 +341,68 @@ date +'%T'>>$Output_file_name;
 Sleep_time_before_ping=$Sleep_time_after_ping;
 Delay_after_bench_finished=$Sleep_time_after_ping;
 let Total_sleep=$Duration_sec+$Sleep_time_after_ping+$Delay_after_bench_finished+$Sleep_time_before_ping+$Sleep_addition_after_benchmark;
-echo "=============== After starting Benchmarks so sleep for ( $Total_sleep ) seconds";
-echo "=============== After starting Benchmarks so sleep for ( $Total_sleep ) seconds">>$Output_file_name;
+let half_of_sleep=$Duration_sec+$Sleep_time_after_ping+$Sleep_time_before_ping;
+let half_of_sleep=$half_of_sleep/2;
+
+echo "=============== After starting Benchmarks. Total sleep time is ( $Total_sleep ) seconds">>$Output_file_name;
+echo "=============== The first half of sleep for ( $half_of_sleep ) seconds">>$Output_file_name;
 date +'%T'>>$Output_file_name;
 echo "========================================================">>$Output_file_name;
-sleep $Total_sleep;
+sleep $half_of_sleep;
 echo "after sleep ===========================">>$Output_file_name;
 date +'%T'>>$Output_file_name;
 
-	
+for index in `seq 1 $Number_of_Nodes`; do 
+(ssh -q ${IPaddresses[$index]} "
+cd $SNIC_TMP/de_bench;
+for counter in {1..$Number_of_VMs}
+do
+	VMname_Dir=\"${VM_Name}\${counter}\";
+	cd \${VMname_Dir}/tests/current;
+	mpstat -P ALL 5 1 > cpu_usage.txt;
+	echo '===============================================================' >> cpu_usage.txt;
+	top -b -n 1 -u $(whoami) >> cpu_usage.txt;
+	free -m > memory_usage.txt;
+done
+")&
+done
+
+START=$(date +%s)
+sleep 10;
+
+Sum_cpu_usage=0;
+Sum_memory_usage=0;
+for index in `seq 1 $Number_of_Nodes`; do 
+
+	cpu_usage=`ssh ${IPaddresses[$index]} " top -b -n 1 " | grep 'beam.smp' | awk '{print $9}' | awk '{sum+=$1} END {print sum}'`
+	Total_cpu_usage=`ssh ${IPaddresses[$index]} " top -b -n 1 " | awk '{print $9}' | awk '{sum+=$1} END {print sum}'`
+
+	Sum_cpu_usage=$(awk "BEGIN {print $Sum_cpu_usage+$Total_cpu_usage; exit}")
+
+	memory_usage=`ssh ${IPaddresses[$index]} " top -b -n 1 " | grep 'beam.smp' | awk '{print $10}' | awk '{sum+=$1} END {print sum}'`
+	Total_memory_usage=`ssh ${IPaddresses[$index]} " top -b -n 1 " | awk '{print $10}' | awk '{sum+=$1} END {print sum}'`
+
+	Sum_memory_usage=$(awk "BEGIN {print $Sum_memory_usage+$Total_memory_usage; exit}")
+
+done
+Sum_cpu_usage=$(awk "BEGIN {print $Sum_cpu_usage/$Number_of_Nodes; exit}")
+Sum_memory_usage=$(awk "BEGIN {print $Sum_memory_usage/$Number_of_Nodes; exit}")
+
+echo "======= CPU and Memory usage =====================">>$Output_file_name;
+echo "average_cpu_usage_percentage: ${Total_number_of_Erlang_Nodes}:${Sum_cpu_usage}">>$Output_file_name;
+echo "average_memory_usage_percentage: ${Total_number_of_Erlang_Nodes}:$Sum_memory_usage">>$Output_file_name;
+		
+END=$(date +%s)
+ElapsedTime=$(( $END - $START ))
+
+let half_of_sleep=$Total_sleep-$half_of_sleep-$ElapsedTime;
+echo "=============== After profiling. ElapsedTime over profiling is $ElapsedTime seconds. The second half of sleep for ( $half_of_sleep ) seconds">>$Output_file_name;
+date +'%T'>>$Output_file_name;
+echo "========================================================">>$Output_file_name;
+sleep $half_of_sleep;
+echo "after sleep ===========================">>$Output_file_name;
+date +'%T'>>$Output_file_name;
+
 for index in `seq 1 $Number_of_Nodes`; do 
 (ssh -q ${IPaddresses[$index]} "
 PATH=$Erlang_path:$R_path:$PATH;
@@ -352,15 +419,48 @@ do
 	cp $SDErlang_Config_File tests/current;
 	find -name 'erl_crash.dump' -exec cp {} tests/current  \;
 	cd tests/current;
-	echo 'list of files before zip ============================================================='>>${Output_file_name}_nodes_${index}_VMs_${Number_of_VMs}_\${VMname_Dir};
-	ls  *.csv *.config *.png>>${Output_file_name}_nodes_${index}_VMs_${Number_of_VMs}_\${VMname_Dir};
-	zip -r Hosts_${Number_of_Nodes}_VMs_${Number_of_VMs}_Host_${index}_VM_\${counter}.zip *.csv *.config *.png *.dump;
+	echo 'list of files before zip ============================================================='>>${Result_directory}/node_${index}_VM_\${counter};	
+	ls  *.csv *.config *.png>>${Result_directory}/node_${index}_VM_\${counter};	
+	zip -r Hosts_${Number_of_Nodes}_VMs_${Number_of_VMs}_Host_${index}_VM_\${counter}.zip *.csv *.config *.png *.dump *.txt;
 	mv  Hosts_${Number_of_Nodes}_VMs_${Number_of_VMs}_Host_${index}_VM_\${counter}.zip $Result_directory;
 done
 ")&
 sleep $Sleep_for_copying_file;
 done
 sleep $Sleep_after_copying_file;
+
+sum_sent_packets=0;
+sum_received_packets=0;
+sum_retransmission_packets=0;
+for index in `seq 1 $Number_of_Nodes`; do 
+	if $BwlfCluster ; then
+		Result_netstat=`ssh ${IPaddresses[$index]} "netstat -s"`;
+	else
+		Result_netstat=`srun -r $zero_index  -N 1 -n 1 bash -c "netstat -s"`;
+	fi
+	after_sent_packets=$(echo "$Result_netstat" | grep 'segments send out'| awk  '{print $1}'| head -1)
+	after_received_packets=$(echo "$Result_netstat" | grep 'segments received'| awk  '{print $1}'| head -1)
+	after_retransmission_packets=$(echo "$Result_netstat" | grep 'retransmited'| awk  '{print $1}')
+	#########
+	temp_after_sent_packets=`echo $after_sent_packets | bc`
+	temp_after_received_packets=`echo $after_received_packets | bc`
+	temp_after_retransmission_packets=`echo $after_retransmission_packets | bc`
+	#########
+	temp_before_sent_packets=`echo ${before_sent_packets[$index]} | bc`
+	temp_before_received_packets=`echo ${before_received_packets[$index]} | bc`
+	temp_before_retransmission_packets=`echo ${before_retransmission_packets[$index]} | bc`
+	##############
+	let sum_sent_packets=sum_sent_packets+temp_after_sent_packets-temp_before_sent_packets;
+	let sum_received_packets=sum_received_packets+temp_after_received_packets-temp_before_received_packets;
+	let sum_retransmission_packets=sum_retransmission_packets+temp_after_retransmission_packets-temp_before_retransmission_packets;
+
+done
+
+echo "======= Network usage =====================">>$Output_file_name;
+echo "sent_packets: ${Total_number_of_Erlang_Nodes}:${sum_sent_packets}">>$Output_file_name;
+echo "received_packets: ${Total_number_of_Erlang_Nodes}:${sum_received_packets}">>$Output_file_name;
+echo "retransmission_packets: ${Total_number_of_Erlang_Nodes}:${sum_retransmission_packets}">>$Output_file_name;
+
 
 # aggregating the collected results of all participating nodes
 cd $Result_directory;
@@ -381,6 +481,36 @@ PATH=$Erlang_path:$R_path:$PATH;
 export PATH;
 cd $Source_direcory;
 priv/summary.r -i "$Result_directory/all/aggregated"
-echo "Benchmark ended at time">>$Output_file_name;
+echo "Finish benchmark at time">>$Output_file_name;
 date +'%T'>>$Output_file_name;
 
+
+# ssh kalkyl.uppmax.uu.se -X -l ag275
+# cd de_benchmark
+# ./run.sh
+
+# scp -r ~/Desktop/sderlang/de_benchmark/* kalkyl.uppmax.uu.se:/bubo/home/h8/ag275/de_benchmark/
+# scp -r /bubo/home/h8/ag275/de_benchmark/* 137.195.27.15:/u1/pg/ag275/Desktop/sderlang/de_benchmark/
+
+# scp -r /bubo/home/h8/ag275/de_benchmark/results/* 137.195.27.15:/u1/pg/ag275/Desktop/sderlang/de_benchmark/results/
+
+# scp ~/Desktop/sderlang/de_benchmark/experiment.sh kalkyl.uppmax.uu.se:/bubo/home/h8/ag275/de_benchmark/
+
+# scp ~/Desktop/sderlang/de_benchmark/template_bench.config kalkyl.uppmax.uu.se:/bubo/home/h8/ag275/de_benchmark/
+
+
+# scancel -i -u ag275
+# squeue  -u ag275
+# jobinfo -u ag275
+# projinfo
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #  How to compile
+
+# Erlang_path="/bubo/home/h8/ag275/erlang/bin";
+# PATH=$PATH:$Erlang_path;
+# export PATH;
+# rm -rf deps
+# rm -rf ebin
+# make
+# rm -rf deps/*/include deps/*/src deps/*/test deps/*/priv deps/*/doc
+# rm deps/*/*

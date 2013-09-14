@@ -118,6 +118,8 @@ wait_for_stop(Mref, DurationMins) ->
             halt(Exit)
 
     after Duration ->
+			{_,Nodes}=net_adm:names(),
+			?CONSOLE("Number of connected nodes to this node: ~p \n", [length(Nodes)]),
             de_bench_app:stop(),
             ?CONSOLE("Test completed after ~p mins.\n", [DurationMins]),
 			Sleep_after_bench_finished=de_bench_config:get(delay_after_bench_finished, 10),

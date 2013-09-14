@@ -5,14 +5,14 @@
 
 
 BwlfCluster=true # Specifies whether use Heriot-Watt University's beowulf cluster or use Uppsala University's kalkyl cluster
-SDErlang=false # Specifies whether use SD Erlang or not
-group_size=3; # Specifies the size of s_groups in SD Erlang
+SDErlang=true # Specifies whether use SD Erlang or not
+group_size=5; # Specifies the size of s_groups in SD Erlang
 Duration=5; # benchmark's duration in minute
 
 
 # specifies the ratio of each command
 spawn_percentage=100 # ratio of spawn
-remote_call_percentage=0 # ratio of rpc
+remote_call_percentage=100 # ratio of rpc
 
 global_register_percentage=0 # ratio of globally name registration
 global_unregister_percentage=0 # ratio of globally name unregistration
@@ -21,6 +21,10 @@ global_whereis_percentage=0 # ratio of globally name query
 local_register_percentage=0 # ratio of local name registration
 local_unregister_percentage=0 # ratio of local name unregistration
 local_whereis_percentage=0 # ratio of local name query
+
+gen_server_call_percentage=0; # ratio of gen_server call
+fsm_server_call_percentage=0; # ratio of fsm server call
+
 # end of specifying the ratio of each command
 
 # sleep time definition is included
@@ -42,9 +46,9 @@ do
 
 	Source_direcory="${Base_directory}";
 	if $SDErlang ; then
-		Result_directory="${Base_Result_directory}/SDErlang/spawn_${spawn_percentage}_rpc_${remote_call_percentage}_global_${global_register_percentage}_local_${local_register_percentage}_expriment_${experiment}";
+		Result_directory="${Base_Result_directory}/SDErlang/spawn_${spawn_percentage}_rpc_${remote_call_percentage}_global_${global_register_percentage}_local_${local_register_percentage}_gen_server_${gen_server_call_percentage}_fsm_${fsm_server_call_percentage}_expriment_${experiment}";
 	else
-		Result_directory="${Base_Result_directory}/spawn_${spawn_percentage}_rpc_${remote_call_percentage}_global_${global_register_percentage}_local_${local_register_percentage}_expriment_${experiment}";
+		Result_directory="${Base_Result_directory}/spawn_${spawn_percentage}_rpc_${remote_call_percentage}_global_${global_register_percentage}_local_${local_register_percentage}_gen_server_${gen_server_call_percentage}_fsm_${fsm_server_call_percentage}_expriment_${experiment}";
 	fi
 
 	if [ ! -d "$Base_directory" ]; then
@@ -66,7 +70,7 @@ do
 		rm -f experiment_*;
 	fi
 
-	for Number_of_Erlang_Nodes in 30 #60 80 100 
+	for Number_of_Erlang_Nodes in 5 10 15 20 25 30 #60 80 100 
 	do     
 		let Number_of_VMs_per_Nodes=$Number_of_Erlang_Nodes/$Exceed_Max;
 
@@ -90,7 +94,7 @@ do
 
 		if $BwlfCluster ; then
 			chmod 755 experiment.sh
-			./experiment.sh $Total_nodes $Number_of_VMs_per_Nodes $spawn_percentage $remote_call_percentage $global_register_percentage  $local_register_percentage $Result_directory $BwlfCluster $group_size $SDErlang $Duration; 
+			./experiment.sh $Total_nodes $Number_of_VMs_per_Nodes $spawn_percentage $remote_call_percentage $global_register_percentage  $local_register_percentage $gen_server_call_percentage $fsm_server_call_percentage $Result_directory $BwlfCluster $group_size $SDErlang $Duration; 
 		else
 			# calculate how long this benchmark will take
 			let Total_number_of_Erlang_Nodes=$Total_nodes*$Number_of_VMs_per_Nodes
@@ -100,8 +104,9 @@ do
 			Sleep_time_after_bench_finished=$Total_number_of_Erlang_Nodes;
 			let Sleep_for_copying_file=$Total_number_of_Erlang_Nodes*2;
 			let aggregating_time=$time_for_aggregating_each_node*$Total_number_of_Erlang_Nodes
+			let profiling_time=$time_for_profiling_each_node*$Total_nodes;
 			
-			let Total_benchmark_time_seconds=$Duration_sec+$Sleep_time_after_ping+$Sleep_time_before_ping+$Sleep_time_after_bench_finished+$Sleep_for_copying_file+$Sleep_after_copying_file+$Sleep_for_copying_file+$Sleep_after_copying_file+$Sleep_addition_after_benchmark+$aggregating_time
+			let Total_benchmark_time_seconds=$Duration_sec+$Sleep_time_after_ping+$Sleep_time_before_ping+$Sleep_time_after_bench_finished+$Sleep_for_copying_file+$Sleep_after_copying_file+$Sleep_for_copying_file+$Sleep_after_copying_file+$Sleep_addition_after_benchmark+$aggregating_time+$profiling_time
 			convertsecs() {
 			 ((h=${1}/3600))
 			 ((m=(${1}%3600)/60))
@@ -116,9 +121,39 @@ do
 			sed "s/SBATCH -p node -N 0 -n 0/$String_format_sbatch/g" experiment.sh>experiment_${Total_nodes}_vms_${Number_of_VMs_per_Nodes}_spawn_${spawn_percentage}_global_register_${global_register_percentage}_local_register_${local_register_percentage}_expriment_${experiment};
 			sed -i "s/00:00:00/$Bench_time/g" experiment_${Total_nodes}_vms_${Number_of_VMs_per_Nodes}_spawn_${spawn_percentage}_global_register_${global_register_percentage}_local_register_${local_register_percentage}_expriment_${experiment};
 			chmod 755 experiment_${Total_nodes}_vms_${Number_of_VMs_per_Nodes}_spawn_${spawn_percentage}_global_register_${global_register_percentage}_local_register_${local_register_percentage}_expriment_${experiment};
-			sbatch experiment_${Total_nodes}_vms_${Number_of_VMs_per_Nodes}_spawn_${spawn_percentage}_global_register_${global_register_percentage}_local_register_${local_register_percentage}_expriment_${experiment} $Total_nodes $Number_of_VMs_per_Nodes $spawn_percentage $remote_call_percentage $global_register_percentage  $local_register_percentage $Result_directory $BwlfCluster $group_size $SDErlang $Duration; 
+			sbatch experiment_${Total_nodes}_vms_${Number_of_VMs_per_Nodes}_spawn_${spawn_percentage}_global_register_${global_register_percentage}_local_register_${local_register_percentage}_expriment_${experiment} $Total_nodes $Number_of_VMs_per_Nodes $spawn_percentage $remote_call_percentage $global_register_percentage  $local_register_percentage $gen_server_call_percentage $fsm_server_call_percentage $Result_directory $BwlfCluster $group_size $SDErlang $Duration; 
 		fi
 
 	done
 done
+
+# ssh kalkyl.uppmax.uu.se -X -l ag275
+# cd de_benchmark
+# ./run.sh
+
+# scp -r ~/Desktop/sderlang/de_benchmark/* kalkyl.uppmax.uu.se:/bubo/home/h8/ag275/de_benchmark/
+# scp -r /bubo/home/h8/ag275/de_benchmark/* 137.195.27.15:/u1/pg/ag275/Desktop/sderlang/de_benchmark/
+
+# scp -r /bubo/home/h8/ag275/de_benchmark/results/* 137.195.27.15:/u1/pg/ag275/Desktop/sderlang/de_benchmark/results/
+
+# scp ~/Desktop/sderlang/de_benchmark/experiment.sh kalkyl.uppmax.uu.se:/bubo/home/h8/ag275/de_benchmark/
+
+# scp ~/Desktop/sderlang/de_benchmark/template_bench.config kalkyl.uppmax.uu.se:/bubo/home/h8/ag275/de_benchmark/
+
+# scancel -i -u ag275
+# squeue  -u ag275
+# jobinfo -u ag275
+# projinfo
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #  How to compile
+
+# Erlang_path="/bubo/home/h8/ag275/erlang/bin";
+# PATH=$PATH:$Erlang_path;
+# export PATH;
+# rm -rf deps
+# rm -rf ebin
+# make
+# rm -rf deps/*/include deps/*/src deps/*/test deps/*/priv deps/*/doc
+# rm deps/*/*
+
 

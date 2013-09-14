@@ -36,7 +36,26 @@ start_link(SupChild, Id) ->
 
 
 init([SupChild, Id]) ->
-	Erlang_nodes=de_bench_config:get(erlange_nodes, []),
+	case de_helper:get_S_Groups() of
+	[] ->
+		S_Groups=false,
+		Erlang_nodes=de_bench_config:get(erlange_nodes, []);
+	_GroupNames ->
+		S_Groups=true,
+		Transitive_connection=de_bench_config:get(transitive_connection, false),
+		case Transitive_connection of
+			false ->
+				%% all commands, i.e. spawn, rpc, and name registration, are done just on nodes inside the current group
+				Erlang_nodes=lists:delete(node(), s_group:own_nodes()),
+				?CONSOLE("transitive_connection is **false** and the number of nodes inside the current group except ~p is: ~p \n", [node(),length(Erlang_nodes)]);
+			_ ->
+				%% Just name registration is done inside the current group
+				%% remove the current node from the target node list
+				Erlang_nodes=lists:delete(node(), de_bench_config:get(erlange_nodes, [])),
+				?CONSOLE("transitive_connection is **true** and the number of all connected nodes is: ~p \n", [length(Erlang_nodes)])
+		end
+	end,
+
     case Erlang_nodes of
         [] ->
 			?FAIL_MSG("~s requires erlange_nodes to be defined in config file.\n", [?MODULE]);
@@ -44,12 +63,6 @@ init([SupChild, Id]) ->
             ok
     end,
 	Ops     = ops_tuple(),
-	case de_helper:get_S_Groups() of
-	[] ->
-		S_Groups=false;
-	_GroupNames ->
-		S_Groups=true
-	end,
 	State = #state { id = Id, sup_id = SupChild, parent_pid=self(), ops = Ops, ops_len = size(Ops), next_op='', data='', erlang_nodes=Erlang_nodes, continue=true, s_groups=S_Groups},
 
 	%% NOTE: If the worker process dies, this obviously introduces some entroy

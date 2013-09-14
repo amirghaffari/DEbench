@@ -41,7 +41,24 @@ workers() ->
 init([]) ->
 	Sleep_time_bef=de_bench_config:get(sleep_time_before_ping, 0),
 	timer:sleep(timer:seconds(Sleep_time_bef)), %% makes sure all nodes run Erlang VM
-	Erlang_nodes=de_bench_config:get(erlange_nodes, []),
+
+	case de_helper:get_S_Groups() of
+	[] ->
+		Erlang_nodes=de_bench_config:get(erlange_nodes, []);
+	_GroupNames ->
+		Transitive_connection=de_bench_config:get(transitive_connection, false),
+		case Transitive_connection of
+			false ->
+				%% all commands, i.e. spawn, rpc, and name registration, are done just on nodes inside the current group
+				Erlang_nodes=s_group:own_nodes(),
+				?CONSOLE("transitive_connection is **false** and the number of nodes inside the current group is: ~p \n", [length(Erlang_nodes)]);
+			_ ->
+				%% Just name registration is done inside the current group, and other commands like spawn and rpc are done on all nodes in the cluster
+				Erlang_nodes=de_bench_config:get(erlange_nodes, []),
+				?CONSOLE("transitive_connection is **true** and the number of all connected nodes is: ~p \n", [length(Erlang_nodes)])
+		end
+	end,	
+
 	Pangs=de_helper:ping_nodes(Erlang_nodes,[]),
 	case Pangs of
 	[] ->
@@ -49,7 +66,8 @@ init([]) ->
 	_->
 		?ERROR("ping: ~p nodes from total ~p nodes are not accessible: ~p~n", [length(Pangs),length(Erlang_nodes), Pangs])
 	end,
-
+	{_,Nodes}=net_adm:names(),
+	?CONSOLE("Number of connected nodes to this node: ~p \n", [length(Nodes)]),
 	%% initiate 
     Initial_global_size=de_bench_config:get(initial_global_size, 0),
     Initial_active_process=de_bench_config:get(initial_active_process, 0),
