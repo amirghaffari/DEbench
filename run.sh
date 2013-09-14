@@ -127,33 +127,5 @@ do
 	done
 done
 
-# ssh kalkyl.uppmax.uu.se -X -l ag275
-# cd de_benchmark
-# ./run.sh
-
-# scp -r ~/Desktop/sderlang/de_benchmark/* kalkyl.uppmax.uu.se:/bubo/home/h8/ag275/de_benchmark/
-# scp -r /bubo/home/h8/ag275/de_benchmark/* 137.195.27.15:/u1/pg/ag275/Desktop/sderlang/de_benchmark/
-
-# scp -r /bubo/home/h8/ag275/de_benchmark/results/* 137.195.27.15:/u1/pg/ag275/Desktop/sderlang/de_benchmark/results/
-
-# scp ~/Desktop/sderlang/de_benchmark/experiment.sh kalkyl.uppmax.uu.se:/bubo/home/h8/ag275/de_benchmark/
-
-# scp ~/Desktop/sderlang/de_benchmark/template_bench.config kalkyl.uppmax.uu.se:/bubo/home/h8/ag275/de_benchmark/
-
-# scancel -i -u ag275
-# squeue  -u ag275
-# jobinfo -u ag275
-# projinfo
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #  How to compile
-
-# Erlang_path="/bubo/home/h8/ag275/erlang/bin";
-# PATH=$PATH:$Erlang_path;
-# export PATH;
-# rm -rf deps
-# rm -rf ebin
-# make
-# rm -rf deps/*/include deps/*/src deps/*/test deps/*/priv deps/*/doc
-# rm deps/*/*
 
 
