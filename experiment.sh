@@ -450,9 +450,9 @@ for index in `seq 1 $Number_of_Nodes`; do
 	temp_before_received_packets=`echo ${before_received_packets[$index]} | bc`
 	temp_before_retransmission_packets=`echo ${before_retransmission_packets[$index]} | bc`
 	##############
-	let sum_sent_packets=sum_sent_packets+temp_after_sent_packets-temp_before_sent_packets;
-	let sum_received_packets=sum_received_packets+temp_after_received_packets-temp_before_received_packets;
-	let sum_retransmission_packets=sum_retransmission_packets+temp_after_retransmission_packets-temp_before_retransmission_packets;
+	let sum_sent_packets=$sum_sent_packets+$temp_after_sent_packets-$temp_before_sent_packets;
+	let sum_received_packets=$sum_received_packets+$temp_after_received_packets-$temp_before_received_packets;
+	let sum_retransmission_packets=$sum_retransmission_packets+$temp_after_retransmission_packets-$temp_before_retransmission_packets;
 
 done
 
