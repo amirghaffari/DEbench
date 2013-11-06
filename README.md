@@ -1,10 +1,10 @@
-DEbench (Distributed Erlang Benchmark)
+DE-Bench (Distributed Erlang Benchmark)
 -----------
 
 Introduction
 ------------
 
-DEbench is a benchmark tool for distributed Erlang. It measures the throughput and latency of distributed Erlang commands and saves them in appropriate `CSV` files. In DEbench the latency and throughput of the following commands can be measured:
+DE-Bench is a benchmark tool for distributed Erlang. It measures the throughput and latency of distributed Erlang commands and saves them in appropriate `CSV` files. In DE-Bench the latency and throughput of the following commands can be measured:
 * Spawn: spawns a function on a local/remote node.
 * RPC: calls a function on a local/remote node.
 * Globally or locally name registration: A PID (process identifier) is registered, looked up, and unregistered globally or locally. Functions `register`, `whereis`, `unregister` are called respectively.
@@ -12,15 +12,15 @@ DEbench is a benchmark tool for distributed Erlang. It measures the throughput a
 
 **Note**) in cases that a function is called, i.e. `spawn`, `RPC`, `gen_server:call` and `gen_fsm:sync_send_event`, the argument’s size of the function and the time that function takes to complete is configurable. For example, we can specify in the configuration file that function’s argument size is 200 bytes and function takes 10 microseconds to complete on target node.
 
-**More**) We have used DEbench in the [RELEASE project] (http://www.release-project.eu/) to measure the scalability of distributed Erlang. You can find more in the report (`report.pdf`).
+**More**) We have used DE-Bench in the [RELEASE project] (http://www.release-project.eu/) to measure the scalability of distributed Erlang. You can find more in the report (`report.pdf`).
 
-DEbench's implementation is based on [Basho Bensh](https://github.com/basho/basho_bench) (an open source benchmarking tool for Riak database).
+DE-Bench's implementation is based on [Basho Bensh](https://github.com/basho/basho_bench) (an open source benchmarking tool for Riak database).
 
 How to build and run the benchmark suite 
 ----------------------------------------
 
 
-### Build DEbench
+### Build DE-Bench
 
 	$ git clone git://github.com/amirghaffari/DEbench
 	$ cd DEbench
@@ -30,7 +30,7 @@ How to build and run the benchmark suite
 
 	$ make clean
 
-### Run DEbench
+### Run DE-Bench
 
 There are two ways to run the benchmark. Easier one is local run in which all commands are run on the local node (`nonode@nohost`). To run the benchmark on a cluster, the cluster information is needed.
 
