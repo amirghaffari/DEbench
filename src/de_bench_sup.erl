@@ -1,8 +1,10 @@
-%% DEbench: A benchmarking suite for distributed Erlang
+%% DE-Bench: A benchmarking suite for distributed Erlang
 %% This file is a modified version of basho_bench_sup.erl
 %% For more information about the licence, please refer to: 
 %% http://docs.basho.com/riak/latest/cookbooks/Benchmarking/
 %% https://github.com/basho/basho_bench
+
+%% Modified by: Amir Ghaffari <Amir.Ghaffari@glasgow.ac.uk>
 %% RELEASE project (http://www.release-project.eu/)
 
 -module(de_bench_sup).
@@ -66,8 +68,7 @@ init([]) ->
 	_->
 		?ERROR("ping: ~p nodes from total ~p nodes are not accessible: ~p~n", [length(Pangs),length(Erlang_nodes), Pangs])
 	end,
-	{_,Nodes}=net_adm:names(),
-	?CONSOLE("Number of connected nodes to this node: ~p \n", [length(Nodes)]),
+
 	%% initiate 
     Initial_global_size=de_bench_config:get(initial_global_size, 0),
     Initial_active_process=de_bench_config:get(initial_active_process, 0),

@@ -1,8 +1,6 @@
-%% DE-Bench: A benchmarking suite for distributed Erlang
-%% All auxiliary functions are defined in the module
-
-%% Author: Amir Ghaffari <Amir.Ghaffari@glasgow.ac.uk>
-%% RELEASE project (http://www.release-project.eu/)
+%% DEbench: A benchmarking suite for distributed Erlang
+%% author: Amir Ghaffari
+%% @RELEASE project (http://www.release-project.eu/)
 
 -module(de_helper).
 

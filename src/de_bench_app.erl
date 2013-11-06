@@ -1,8 +1,10 @@
-%% DEbench: A benchmarking suite for distributed Erlang
+%% DE-Bench: A benchmarking suite for distributed Erlang
 %% This file is a modified version of basho_bench_app.erl
 %% For more information about the licence, please refer to: 
 %% http://docs.basho.com/riak/latest/cookbooks/Benchmarking/
 %% https://github.com/basho/basho_bench
+
+%% Modified by: Amir Ghaffari <Amir.Ghaffari@glasgow.ac.uk>
 %% RELEASE project (http://www.release-project.eu/)
 
 -module(de_bench_app).

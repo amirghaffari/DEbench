@@ -1,8 +1,10 @@
-%% DEbench: A benchmarking suite for distributed Erlang
+%% DE-Bench: A benchmarking suite for distributed Erlang
 %% This file is a modified version of basho_bench.erl
 %% For more information about the licence, please refer to: 
 %% http://docs.basho.com/riak/latest/cookbooks/Benchmarking/
 %% https://github.com/basho/basho_bench
+
+%% Modified by: Amir Ghaffari <Amir.Ghaffari@glasgow.ac.uk>
 %% RELEASE project (http://www.release-project.eu/)
 
 -module(de_bench).
@@ -118,8 +120,6 @@ wait_for_stop(Mref, DurationMins) ->
             halt(Exit)
 
     after Duration ->
-			{_,Nodes}=net_adm:names(),
-			?CONSOLE("Number of connected nodes to this node: ~p \n", [length(Nodes)]),
             de_bench_app:stop(),
             ?CONSOLE("Test completed after ~p mins.\n", [DurationMins]),
 			Sleep_after_bench_finished=de_bench_config:get(delay_after_bench_finished, 10),

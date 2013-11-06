@@ -1,6 +1,8 @@
-%% DEbench: A benchmarking suite for distributed Erlang
-%% author: Amir Ghaffari
-%% @RELEASE project (http://www.release-project.eu/)
+%% DE-Bench: A benchmarking suite for distributed Erlang
+%% DE-Bench's commands are defined in this module
+
+%% Author: Amir Ghaffari <Amir.Ghaffari@glasgow.ac.uk>
+%% RELEASE project (http://www.release-project.eu/)
 
 -module(de_commands).
 

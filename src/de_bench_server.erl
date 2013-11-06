@@ -1,8 +1,9 @@
-%% DEbench: A benchmarking suite for distributed Erlang
-%% author: Amir Ghaffari
+%% DE-Bench: A benchmarking suite for distributed Erlang
+%% This module runs a gen-server process to handle incoming requests
+
+%% Author: Amir Ghaffari <Amir.Ghaffari@glasgow.ac.uk>
 %% RELEASE project (http://www.release-project.eu/)
 
-%% Investigates the scalability of gen_server process
 -module(de_bench_server).
 
 -behaviour(gen_server).

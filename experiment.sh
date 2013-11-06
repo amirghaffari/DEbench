@@ -3,8 +3,8 @@
 #SBATCH -p node -N 0 -n 0
 #SBATCH -t 00:00:00 
 
-# author: Amir Ghaffari
-# @RELEASE project (http://www.release-project.eu/)
+# Author: Amir Ghaffari <Amir.Ghaffari@glasgow.ac.uk>
+# RELEASE project (http://www.release-project.eu/)
 
 # sleep time definition
 source constant.sh
@@ -24,6 +24,8 @@ BwlfCluster=${10}
 group_size=${11}
 SDErlang=${12}
 Duration=${13} # benchmark's duration
+packet_size=${14}
+delay_remote_function=${15}
 
 Base_directory=`pwd`;
 
@@ -35,16 +37,16 @@ if $BwlfCluster ; then
 	else
 		Erlang_path="/home/ag275/erlang/bin";
 	fi
-	R_path="/home/ag275/R/R-3.0.1/bin";
+	R_path="/home/ag275/R/bin";
 	SNIC_TMP="/scratch"
 	Killing_nodes=$Total_Nodes
 else
 	if $SDErlang ; then
-		Erlang_path="/bubo/home/h8/ag275/sderlang/bin";
+		Erlang_path="/home/ag275/sderlang/bin";
 	else
-		Erlang_path="/bubo/home/h8/ag275/erlang/bin";
+		Erlang_path="/home/ag275/erlang/bin";
 	fi
-	R_path="/bubo/home/h8/ag275/R/bin";
+	R_path="/home/ag275/R/bin";
 	Killing_nodes=0;
 fi
 
@@ -164,6 +166,7 @@ let Sleep_for_copying_file=$Number_of_VMs*2;
 
 echo "Name of VM nodes are: $String_format_addresses">>$Output_file_name;
 echo "======= Duration is $Duration_sec seconds  and Sleep_time_after_ping is $Sleep_time_after_ping seconds =========">>$Output_file_name;
+echo "======= packet_size=${packet_size}     delay_remote_function=${delay_remote_function}  =========">>$Output_file_name;
 
 if $SDErlang ; then
 	let NumberOfGroup=$Total_number_of_Erlang_Nodes/$group_size+1;
@@ -263,7 +266,10 @@ do
 	sed -i \"s/sleep_time_after_ping_here/$Sleep_time_after_ping/g\" $Config_file;
 	sed -i \"s/sleep_time_before_ping_here/$Sleep_time_after_ping/g\" $Config_file;
 	sed -i \"s/delay_after_bench_finished_here/$Sleep_time_after_ping/g\" $Config_file;
-	
+
+	sed -i \"s/packet_size_here/$packet_size/g\" $Config_file;
+	sed -i \"s/delay_remote_function_here/$delay_remote_function/g\" $Config_file;
+
 	sed -i \"s/minutes/$Duration/g\" $Config_file;
 	sed -i \"s/report_interval_seconds/$Report_interval_seconds/g\" $Config_file;
 	sed -i \"s/local_node_name/\${VMname}${Hostnames[$index]}/g\" $Config_file;
