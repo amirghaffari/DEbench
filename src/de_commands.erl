@@ -72,15 +72,22 @@ run(TargetNode, Ope, Data, S_Groups) ->
 			case S_Groups of
 			true ->
 				GroupNames=de_helper:get_S_Groups(),
-				Start = now(),
-				lists:foreach(fun(SGroupName) ->	s_group:register_name(SGroupName, ProcessName, self()) end, GroupNames),
-				ElapsedUs = timer:now_diff(now(), Start)/erlang:length(GroupNames);
+				case GroupNames of
+				[] ->
+					?ERROR("Group names is an empty list: ~p ~n", [GroupNames]),
+					{error, 0, s_group_name_empty};
+				_->
+					Start = now(),
+					lists:foreach(fun(SGroupName) -> s_group:register_name(SGroupName, ProcessName, self()) end, GroupNames),
+					ElapsedUs = timer:now_diff(now(), Start)/erlang:length(GroupNames),
+					{ok, ElapsedUs, global_register, ProcessName}
+				end;
 			false ->
 				Start = now(),
 				global:register_name(ProcessName, self()),
-				ElapsedUs = timer:now_diff(now(), Start)
-			end,
-			{ok, ElapsedUs, global_register, ProcessName};
+				ElapsedUs = timer:now_diff(now(), Start),
+				{ok, ElapsedUs, global_register, ProcessName}
+			end;
 
 		%% unregister a name globally
 		global_unregister ->
