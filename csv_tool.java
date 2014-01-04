@@ -59,6 +59,7 @@ public class csv_tool
         average_columns.put("local-register_latencies.csv", new int [] {4,5,6,7,8,9,10});
         average_columns.put("local-unregister_latencies.csv", new int [] {4,5,6,7,8,9,10});
         average_columns.put("local-whereis_latencies.csv", new int [] {4,5,6,7,8,9,10});
+        average_columns.put("gen-server-call_latencies.csv", new int [] {4,5,6,7,8,9,10});
         average_columns.put("fsm-server-call_latencies.csv", new int [] {4,5,6,7,8,9,10});
         return average_columns;
     }
